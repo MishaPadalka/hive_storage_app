@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:hive_storage_app/home_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_storage_app/models/movie_model.dart';
 
 void main() async {
+WidgetsFlutterBinding.ensureInitialized();
 
   await Hive.initFlutter();
   
-  var box = await Hive.openBox('mybox');
+  Hive.registerAdapter(MovieAdapter());
+
+  await Hive.openBox<Movie>('favourite_movies');
+
   runApp(const MyApp());
 }
 

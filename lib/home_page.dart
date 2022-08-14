@@ -11,11 +11,14 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  List<Movie> movies = [];
+  late Box<Movie> moviesBox;
+
 
   @override
   void initState() {
     super.initState();
+    moviesBox = Hive.box('favourite_movies');
+    print('Movies: ${moviesBox.values}');
   }
 
   Widget build(BuildContext context) {
@@ -29,50 +32,60 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: movies.length,
-        itemBuilder: (context, index) {
-          Movie movie = movies[index];
-          return ListTile(
-            contentPadding: const EdgeInsets.all(10),
-            leading: Image.network(
-              movie.imageUrl,
-              fit: BoxFit.cover,
-              width: 100,
-            ),
-            title: Text(movie.name),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  onPressed: () {},
-                  icon: Icon(
-                    Icons.watch_later_sharp,
-                    color: movie.addedToWatchList ? Colors.grey : Colors.red,
-                  ),
+      body: ValueListenableBuilder(
+        valueListenable: moviesBox.listenable(),
+        builder: (context, Box<Movie> box, _) {
+          List<Movie> movies = box.values.toList().cast<Movie>();
+          return ListView.builder(
+            itemCount: movies.length,
+            itemBuilder: (context, index) {
+              Movie movie = movies[index];
+              return ListTile(
+                contentPadding: const EdgeInsets.all(10),
+                leading: Image.network(
+                  movie.imageUrl,
+                  fit: BoxFit.cover,
+                  width: 100,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () {},
+                title: Text(movie.name),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      onPressed: () {},
+                      icon: Icon(
+                        Icons.watch_later_sharp,
+                        color: movie.addedToWatchList ? Colors.grey : Colors.red,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () {},
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () {},
+                    ),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: () {},
-                ),
-              ],
-            ),
+              );
+            },
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
-        onPressed: () =>_showModalBottomSheet(context: context),
+        onPressed: () => _showModalBottomSheet(
+          context: context,
+          moviesBox: moviesBox,
+        ),
       ),
     );
   }
 
   void _showModalBottomSheet({
     required BuildContext context,
+    required Box moviesBox,
     Movie? movie,
   }) {
     Random random = Random();
@@ -86,8 +99,7 @@ class _HomePageState extends State<HomePage> {
         isDismissible: true,
         elevation: 5,
         context: context,
-        builder: (context) =>
-            Padding(
+        builder: (context) => Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -98,26 +110,28 @@ class _HomePageState extends State<HomePage> {
                     decoration: const InputDecoration(labelText: 'Movie'),
                   ),
                   TextField(
-                  controller: imageUrlController,
-                  keyboardType: TextInputType.name,
-                  decoration: const InputDecoration(labelText: 'Image URL'),
-                ),
+                    controller: imageUrlController,
+                    keyboardType: TextInputType.name,
+                    decoration: const InputDecoration(labelText: 'Image URL'),
+                  ),
                   const SizedBox(height: 10),
-                  ElevatedButton(onPressed: () {
-                    Movie movie = Movie(
-                      id: '${random.nextInt(10000)}',
-                      name: nameController.text,
-                      imageUrl: imageUrlController.text,
-                      addedToWatchList: false,
-                    );
-                    setState(() {
-                      movies.add(movie);
-                    });
-                    Navigator.pop(context);
-                  }, child: const Text('Save'),)
+                  ElevatedButton(
+                    onPressed: () {
+                      Movie movie = Movie(
+                        id: '${random.nextInt(10000)}',
+                        name: nameController.text,
+                        imageUrl: imageUrlController.text,
+                        addedToWatchList: false,
+                      );
+                      
+
+                      moviesBox.put(movie.id, movie);
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Save'),
+                  )
                 ],
               ),
-            )
-    );
+            ));
   }
 }
